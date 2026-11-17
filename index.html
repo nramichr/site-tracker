@@ -21,7 +21,7 @@
     --good: #15803d; --good-bg: #dcfce7; --bad: #b91c1c; --bad-bg: #fee2e2;
     --c1: #2563eb; --c2: #16a34a; --c3: #f97316; --c4: #8b5cf6;
     --heat: 37 99 235;
-    --blob1: rgb(59 130 246 / .28); --blob2: rgb(139 92 246 / .22); --blob3: rgb(20 184 166 / .18); --dot: rgb(15 23 42 / .07);
+    --blob1: rgb(59 130 246 / .32); --blob2: rgb(139 92 246 / .26); --blob3: rgb(20 184 166 / .22); --blob4: rgb(236 72 153 / .14); --mote: rgb(37 99 235 / .5); --dot: rgb(15 23 42 / .07);
     --shadow: 0 1px 2px rgb(15 23 42 / .04), 0 2px 6px rgb(15 23 42 / .04);
     color-scheme: light;
   }
@@ -33,7 +33,7 @@
       --good: #4ade80; --good-bg: rgb(34 197 94 / .14); --bad: #f87171; --bad-bg: rgb(239 68 68 / .14);
       --c1: #4f8cff; --c2: #34d399; --c3: #fb923c; --c4: #a78bfa;
       --heat: 79 140 255; --shadow: none; color-scheme: dark;
-    --blob1: rgb(79 140 255 / .17); --blob2: rgb(167 139 250 / .13); --blob3: rgb(45 212 191 / .09); --dot: rgb(255 255 255 / .05);
+    --blob1: rgb(79 140 255 / .22); --blob2: rgb(167 139 250 / .17); --blob3: rgb(45 212 191 / .12); --blob4: rgb(244 114 182 / .10); --mote: rgb(147 190 255 / .7); --dot: rgb(255 255 255 / .05);
     }
   }
   :root[data-theme="dark"] {
@@ -43,7 +43,7 @@
     --good: #4ade80; --good-bg: rgb(34 197 94 / .14); --bad: #f87171; --bad-bg: rgb(239 68 68 / .14);
     --c1: #4f8cff; --c2: #34d399; --c3: #fb923c; --c4: #a78bfa;
     --heat: 79 140 255; --shadow: none; color-scheme: dark;
-    --blob1: rgb(79 140 255 / .17); --blob2: rgb(167 139 250 / .13); --blob3: rgb(45 212 191 / .09); --dot: rgb(255 255 255 / .05);
+    --blob1: rgb(79 140 255 / .22); --blob2: rgb(167 139 250 / .17); --blob3: rgb(45 212 191 / .12); --blob4: rgb(244 114 182 / .10); --mote: rgb(147 190 255 / .7); --dot: rgb(255 255 255 / .05);
   }
 
   * { box-sizing: border-box; }
@@ -60,20 +60,40 @@
      and nothing repaints. No JavaScript, no canvas, a few MB of video memory. */
   .bg-art { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
     background-image: radial-gradient(var(--dot) 1px, transparent 1.6px); background-size: 24px 24px; }
-  .bg-art span { position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%; will-change: transform;
-    animation: drift 40s ease-in-out infinite alternate; }
-  .bg-art span:nth-child(1) { background: radial-gradient(circle, var(--blob1), transparent 65%); top: -22vmax; left: -8vmax; }
-  .bg-art span:nth-child(2) { background: radial-gradient(circle, var(--blob2), transparent 65%); bottom: -26vmax; right: -14vmax; animation-duration: 48s; animation-delay: -14s; }
-  .bg-art span:nth-child(3) { background: radial-gradient(circle, var(--blob3), transparent 65%); top: 28%; left: 38%; width: 46vmax; height: 46vmax; animation-duration: 56s; animation-delay: -28s; }
+  /* Wrapper follows the mouse a little (parallax); its children drift on their own */
+  .bg-art .blobs { position: absolute; inset: 0; transform: translate3d(var(--mx, 0), var(--my, 0), 0); transition: transform 1.2s cubic-bezier(.2, .7, .2, 1); will-change: transform; }
+  .bg-art .blobs span { position: absolute; width: 58vmax; height: 58vmax; border-radius: 50%; will-change: transform, opacity;
+    animation: drift 24s ease-in-out infinite alternate, breathe 7s ease-in-out infinite alternate; }
+  .bg-art .blobs span:nth-child(1) { background: radial-gradient(circle, var(--blob1), transparent 65%); top: -22vmax; left: -8vmax; }
+  .bg-art .blobs span:nth-child(2) { background: radial-gradient(circle, var(--blob2), transparent 65%); bottom: -26vmax; right: -14vmax; animation-duration: 29s, 9s; animation-delay: -9s, -3s; animation-direction: alternate-reverse, alternate; }
+  .bg-art .blobs span:nth-child(3) { background: radial-gradient(circle, var(--blob3), transparent 65%); top: 26%; left: 36%; width: 44vmax; height: 44vmax; animation-duration: 33s, 6s; animation-delay: -17s, -2s; }
+  .bg-art .blobs span:nth-child(4) { background: radial-gradient(circle, var(--blob4), transparent 65%); top: 8%; right: -10vmax; width: 38vmax; height: 38vmax; animation-duration: 21s, 8s; animation-delay: -5s, -6s; animation-direction: alternate-reverse, alternate; }
   @keyframes drift {
-    0%   { transform: translate(0, 0) scale(1); }
-    50%  { transform: translate(14vmax, 9vmax) scale(1.18); }
-    100% { transform: translate(-8vmax, 16vmax) scale(.9); }
+    0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+    25%  { transform: translate(16vmax, 6vmax) scale(1.2) rotate(40deg); }
+    50%  { transform: translate(6vmax, 18vmax) scale(.92) rotate(90deg); }
+    75%  { transform: translate(-10vmax, 10vmax) scale(1.12) rotate(140deg); }
+    100% { transform: translate(-4vmax, -6vmax) scale(1) rotate(180deg); }
   }
+  @keyframes breathe { from { opacity: .55; } to { opacity: 1; } }
+
+  /* Firefly particles drifting upward (created by a tiny script at the bottom) */
+  .bg-art .motes i { position: absolute; bottom: -24px; border-radius: 50%; background: var(--mote); box-shadow: 0 0 10px 2px var(--mote);
+    opacity: 0; will-change: transform, opacity; animation: rise linear infinite; }
+  @keyframes rise {
+    0%   { transform: translate(0, 0); opacity: 0; }
+    12%  { opacity: .9; }
+    50%  { transform: translate(calc(var(--dx) * -.5), -55vh); }
+    85%  { opacity: .55; }
+    100% { transform: translate(var(--dx), -112vh); opacity: 0; }
+  }
+
+  .kpis .card { transition: transform .25s ease, box-shadow .25s ease; }
+  .kpis .card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgb(37 99 235 / .14); }
 
   /* ---------- Layout ---------- */
   .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
-  .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 18px 14px; }
+  .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: color-mix(in srgb, var(--card) 85%, transparent); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 18px 14px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; padding: 4px 8px 20px; }
   .logo { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; display: grid; place-items: center; }
   .nav-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 18px 10px 6px; }
@@ -125,7 +145,7 @@
   .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
   .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
   .span2 { grid-column: span 2; }
-  .card { position: relative; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); scroll-margin-top: 84px; }
+  .card { position: relative; min-width: 0; background: color-mix(in srgb, var(--card) 82%, transparent); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); scroll-margin-top: 84px; }
   .grid > .card { height: 100%; }
   .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
   .card h2 { margin: 0; font-size: 15px; font-weight: 600; }
@@ -282,7 +302,10 @@
 </style>
 </head>
 <body>
-<div class="bg-art" aria-hidden="true"><span></span><span></span><span></span></div>
+<div class="bg-art" aria-hidden="true">
+  <div class="blobs"><span></span><span></span><span></span><span></span></div>
+  <div class="motes"></div>
+</div>
 
 <!-- Icon set (drawn inline so the page has no outside dependencies) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -1000,6 +1023,35 @@
     clearTimeout(rTimer);
     rTimer = setTimeout(function () { if (window.innerWidth !== lastW) { lastW = window.innerWidth; render(); } }, 150);
   });
+
+  // ---------- Background life: fireflies + mouse parallax ----------
+  (function () {
+    var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var motes = document.querySelector(".bg-art .motes"), html = "";
+    var count = window.innerWidth < 700 ? 10 : 18;   // fewer on phones
+    for (var i = 0; i < count; i++) {
+      var size = (2.5 + Math.random() * 4).toFixed(1);
+      html += '<i style="left:' + (Math.random() * 100).toFixed(1) + "%;width:" + size + "px;height:" + size + "px;" +
+        "animation-duration:" + (13 + Math.random() * 15).toFixed(1) + "s;animation-delay:-" + (Math.random() * 28).toFixed(1) + "s;" +
+        "--dx:" + (Math.random() * 18 - 9).toFixed(1) + 'vw"></i>';
+    }
+    motes.innerHTML = html;
+    if (still) return;
+
+    // Glows lean gently away from the pointer. Only one style write per frame, at most.
+    var blobs = document.querySelector(".bg-art .blobs"), queued = false, px = 0, py = 0;
+    window.addEventListener("pointermove", function (e) {
+      px = e.clientX / window.innerWidth - 0.5;
+      py = e.clientY / window.innerHeight - 0.5;
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(function () {
+        queued = false;
+        blobs.style.setProperty("--mx", (px * -4).toFixed(2) + "vmax");
+        blobs.style.setProperty("--my", (py * -4).toFixed(2) + "vmax");
+      });
+    }, { passive: true });
+  })();
 
   // ---------- Start ----------
   themeIcon();
