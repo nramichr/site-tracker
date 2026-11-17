@@ -4,8 +4,11 @@ My own visitor tracker and dashboard. No Google Analytics.
 
 > **About this project:** This was developed with AI (Claude Code) as practice to prepare for a
 > hackathon event hosted by TechPoint in Indianapolis. I'm still learning HTML, so most of the
-> code here was written by AI. I directed the project, set up the Google Sheet and GitHub Pages,
-> and connected it to my site.
+> code here was written by AI. I directed the project and set up the Google Sheet and GitHub Pages.
+
+> **Demo data:** The numbers on the dashboard are made-up sample data, not real visitors.
+> The tracker is not installed on any live site right now, so nothing real is being counted.
+> The sample visits are generated in the browser each time the page loads.
 
 | File | What it does | Where it goes |
 | --- | --- | --- |
@@ -14,7 +17,7 @@ My own visitor tracker and dashboard. No Google Analytics.
 | Code.gs | Saves visits to a Google Sheet and hands them to the dashboard | Google Sheet > Extensions > Apps Script |
 | dashboard.html | Old address, just forwards to index.html | Can be deleted |
 
-The dashboard shows demo data until it's connected to the sheet.
+The dashboard shows demo data until it's connected to the sheet and the tracker is added to a site.
 
 ## 1. Set up the Google Sheet
 
@@ -33,17 +36,14 @@ The dashboard shows demo data until it's connected to the sheet.
 
 To update later: edit the files and upload them again (or use `git push`). Pages redeploys on its own.
 
-## 3. Track a site
+## 3. Track a site (optional, not done yet)
 
-The site being tracked is <https://nramichr.github.io/> (repo `nramichr/nramichr.github.io`).
-Add this one line inside `<head>` (just before `</head>`) on each page you want counted:
+This step is not done, which is why the dashboard runs on demo data. To track a real site,
+add this one line inside `<head>` (just before `</head>`) on each page you want counted:
 
 ```html
 <script src="https://nramichr.github.io/site-tracker/tracker.js" defer></script>
 ```
-
-At minimum add it to the home page (`index.html`). Add it to the pages under `Repo/chXX/` too
-if you want chapter views counted. Then commit and push that repo.
 
 Because this repo is called `site-tracker` under the same account, the dashboard lives at
 <https://nramichr.github.io/site-tracker/> and tracker.js is served from the same address.
@@ -52,7 +52,8 @@ Visit a tracked site with `?notrack=1` once to stop counting my own visits.
 
 ## Dashboard tips
 
-- `/` or `Ctrl+K` jumps to the page filter. Filtering updates every chart.
+- The page dropdown at the top picks one page (or "All pages"). Every card updates to show only that page.
+  Clicking a row in the Top pages table picks that page too.
 - 7 / 30 / 90 days compares against the same length of time just before it.
 - Export downloads the visible period as a CSV.
 - The moon/sun button switches light and dark mode.

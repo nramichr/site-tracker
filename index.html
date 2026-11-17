@@ -75,8 +75,10 @@
   .top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; padding: 12px 28px; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
   .search { flex: 0 1 340px; min-width: 0; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
   .search:focus-within { border-color: var(--accent); }
-  .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--ink); }
-  .search input::-webkit-search-cancel-button { cursor: pointer; }
+  .search select { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--ink); font-weight: 500; cursor: pointer; }
+  .search select option { background: var(--card); color: var(--ink); }
+  #pageRows tr[data-page] { cursor: pointer; }
+  #pageRows tr[data-page]:hover td { background: var(--track); }
   kbd { font: 600 11px Inter, system-ui, sans-serif; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; background: var(--bg); }
   .spacer { flex: 1; }
   .icon-btn { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); }
@@ -329,9 +331,8 @@
     <header class="top">
       <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open menu"><svg class="ic"><use href="#i-menu"/></svg></button>
       <label class="search">
-        <svg class="ic sm"><use href="#i-search"/></svg>
-        <input id="q" type="search" placeholder="Filter by page…" aria-label="Filter by page" autocomplete="off">
-        <kbd>/</kbd>
+        <svg class="ic sm"><use href="#i-file"/></svg>
+        <select id="pageSel" aria-label="Choose a page"><option value="">All pages</option></select>
       </label>
       <div class="spacer"></div>
       <button class="icon-btn" id="refresh" type="button" aria-label="Refresh data" title="Refresh"><svg class="ic"><use href="#i-refresh"/></svg></button>
@@ -449,7 +450,7 @@
   var DAY = 864e5;
   var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  var state = { rows: [], days: 30, q: "", mode: "demo", allPages: false, loadedAt: null, failed: false };
+  var state = { rows: [], days: 30, page: "", mode: "demo", allPages: false, loadedAt: null, failed: false };
 
   // ---------- Small helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -555,6 +556,17 @@
   }
 
   // ---------- Numbers ----------
+  // One source per visit: where that visitor first arrived from
+  function visitSources(list) {
+    var seen = new Set(), out = [];
+    list.forEach(function (r) {
+      if (seen.has(r.sid)) return;
+      seen.add(r.sid);
+      out.push((state.entry && state.entry.get(r.sid)) || (r.ref === "internal" ? "direct" : r.ref));
+    });
+    return out;
+  }
+
   function metrics(list) {
     var bySid = new Map();
     list.forEach(function (r) { bySid.set(r.sid, (bySid.get(r.sid) || 0) + 1); });
@@ -584,14 +596,13 @@
     var start = addDays(midnight(now), -(days - 1));   // first day of this period
     var pstart = addDays(start, -days);                 // first day of the previous period
     var pend = addDays(now, -days);                     // same point in time, one period back
-    var q = state.q.toLowerCase();
-    var rows = q ? state.rows.filter(function (r) { return label(r.page).toLowerCase().indexOf(q) >= 0; }) : state.rows;
+    var rows = state.page ? state.rows.filter(function (r) { return r.page === state.page; }) : state.rows;
     var cur = rows.filter(function (r) { return r.ms >= start && r.ms <= now; });
     var prev = rows.filter(function (r) { return r.ms >= pstart && r.ms < pend; });
     var c = metrics(cur), p = metrics(prev);
 
     $("rangeText").textContent = dshort(start) + " – " + dshort(now) + ", " + new Date(now).getFullYear() +
-      " · vs previous " + days + " days" + (q ? " · pages matching “" + state.q + "”" : "");
+      " · vs previous " + days + " days" + (state.page ? " · " + label(state.page) + " only" : "");
 
     renderKpis(c, p);
     renderTraffic(cur, prev, start, pstart, days);
@@ -634,10 +645,10 @@
     drawLine($("line"), a, b, start, pstart);
 
     // Traffic-type strip (how each visit started)
-    var entries = cur.filter(function (r) { return r.ref !== "internal"; });
-    var counts = {}; entries.forEach(function (r) { var g = group(r.ref); counts[g] = (counts[g] || 0) + 1; });
-    var total = entries.length || 1;
-    $("strip").innerHTML = '<div class="strip-title">Traffic sources <span class="vs">' + fmt(entries.length) + " visits</span></div>" +
+    var refs = visitSources(cur);
+    var counts = {}; refs.forEach(function (ref) { var g = group(ref); counts[g] = (counts[g] || 0) + 1; });
+    var total = refs.length || 1;
+    $("strip").innerHTML = '<div class="strip-title">Traffic sources <span class="vs">' + fmt(refs.length) + " visits</span></div>" +
       GROUPS.map(function (g) {
         var n = counts[g.id] || 0;
         return '<div class="src" style="--c:' + g.c + '"><div class="src-n"><span class="dot">' + icon(g.icon, "sm") + "</span>" + fmt(n) + "</div>" +
@@ -769,7 +780,7 @@
     $("pageRows").innerHTML = list.map(function (e) {
       var d = delta(e[1], prevViews.get(e[0]) || 0);
       var ic = e[0] === "/" ? "home" : /\.pdf$/i.test(e[0]) ? "download" : "file";
-      return '<tr><td><div class="pg"><span class="pg-ic">' + icon(ic, "sm") + '</span><span title="' + esc(e[0]) + '">' + esc(label(e[0])) + "</span></div></td>" +
+      return '<tr data-page="' + esc(e[0]) + '"><td><div class="pg"><span class="pg-ic">' + icon(ic, "sm") + '</span><span title="' + esc(e[0]) + '">' + esc(label(e[0])) + "</span></div></td>" +
         '<td class="n">' + fmt(e[1]) + '</td><td class="n">' + fmt(visits.get(e[0]).size) + "</td>" +
         '<td><div class="share"><div class="meter"><span style="width:' + (e[1] / total * 100) + '%"></span></div><em>' + pct(e[1] / total) + "</em></div></td>" +
         '<td class="n"><span class="chg ' + d.cls + '">' + esc(d.txt) + "</span></td></tr>";
@@ -777,8 +788,8 @@
   }
 
   function renderRefs(cur) {
-    var entries = cur.filter(function (r) { return r.ref !== "internal"; });
-    var list = countBy(entries, function (r) { return r.ref; }).slice(0, 7), total = entries.length || 1;
+    var refs = visitSources(cur);
+    var list = countBy(refs, function (ref) { return ref; }).slice(0, 7), total = refs.length || 1;
     var colour = { direct: "var(--c1)", search: "var(--c2)", social: "var(--c3)", other: "var(--c4)" };
     $("refRows").innerHTML = list.map(function (e) {
       var g = group(e[0]), name = e[0] === "direct" ? "Direct" : e[0];
@@ -836,8 +847,27 @@
     $("connBtn").textContent = live ? "Connection settings" : "Connect sheet";
   }
 
+  // Fill the page dropdown with every page in the data, most viewed first
+  function fillPages() {
+    // Remember where each visit started, so a single page still shows its sources
+    state.entry = new Map();
+    state.rows.forEach(function (r) { if (r.ref !== "internal" && !state.entry.has(r.sid)) state.entry.set(r.sid, r.ref); });
+    var pages = countBy(state.rows, function (r) { return r.page; });
+    if (state.page && !pages.some(function (p) { return p[0] === state.page; })) state.page = "";
+    $("pageSel").innerHTML = '<option value="">All pages</option>' + pages.map(function (p) {
+      return '<option value="' + esc(p[0]) + '">' + esc(label(p[0])) + "</option>";
+    }).join("");
+    $("pageSel").value = state.page;
+  }
+  function choosePage(p) {
+    state.page = p;
+    $("pageSel").value = p;
+    render();
+  }
+
   function useDemo() {
     state.rows = demoData();
+    fillPages();
     state.mode = "demo";
     save("mode", "demo");
     setStatus();
@@ -854,6 +884,7 @@
       .then(function (data) {
         if (data.error) throw new Error(data.error);
         state.rows = prepare(data.rows || []);
+        fillPages();
         state.mode = "live"; state.failed = false; state.loadedAt = Date.now();
         save("url", url); save("key", key); save("mode", "live");
         $("msg").textContent = "";
@@ -873,8 +904,8 @@
   }
 
   function exportCsv() {
-    var days = state.days, start = addDays(midnight(Date.now()), -(days - 1)), q = state.q.toLowerCase();
-    var list = state.rows.filter(function (r) { return r.ms >= start && (!q || label(r.page).toLowerCase().indexOf(q) >= 0); })
+    var days = state.days, start = addDays(midnight(Date.now()), -(days - 1));
+    var list = state.rows.filter(function (r) { return r.ms >= start && (!state.page || r.page === state.page); })
       .sort(function (a, b) { return a.ms - b.ms; });
     function cell(v) { var s = String(v); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; }
     var csv = ["Time,Page,Came from,Device,Visit ID"].concat(list.map(function (r) {
@@ -895,12 +926,10 @@
   }
   $("seg").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) setDays(+b.dataset.days); });
 
-  var qTimer;
-  $("q").addEventListener("input", function () { clearTimeout(qTimer); qTimer = setTimeout(function () { state.q = $("q").value.trim(); render(); }, 120); });
-  document.addEventListener("keydown", function (e) {
-    var typing = /INPUT|TEXTAREA/.test(document.activeElement.tagName);
-    if ((e.key === "/" && !typing) || (e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); $("q").focus(); }
-    if (e.key === "Escape" && document.activeElement === $("q")) { $("q").value = ""; state.q = ""; $("q").blur(); render(); }
+  $("pageSel").addEventListener("change", function () { choosePage($("pageSel").value); });
+  $("pageRows").addEventListener("click", function (e) {
+    var tr = e.target.closest("tr[data-page]");
+    if (tr) { choosePage(tr.getAttribute("data-page")); window.scrollTo({ top: 0, behavior: "smooth" }); }
   });
 
   function openDialog() { $("msg").textContent = ""; closeNav(); $("dlg").showModal(); $("url").focus(); }
