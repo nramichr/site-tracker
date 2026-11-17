@@ -2,6 +2,11 @@
 
 My own visitor tracker and dashboard. No Google Analytics.
 
+> **About this project:** This was developed with AI (Claude Code) as practice to prepare for a
+> hackathon event hosted by TechPoint in Indianapolis. I'm still learning HTML, so most of the
+> code here was written by AI. I directed the project, set up the Google Sheet and GitHub Pages,
+> and connected it to my site.
+
 | File | What it does | Where it goes |
 | --- | --- | --- |
 | index.html | The dashboard (charts, top pages, sources, live feed) | GitHub Pages (this repo) |
